@@ -48,7 +48,8 @@ export function EquityChart({ data }: { data: EquityPoint[] }) {
         vertLine: { color: '#2f3a4d', labelBackgroundColor: '#1a2130' },
         horzLine: { color: '#2f3a4d', labelBackgroundColor: '#1a2130' },
       },
-      handleScale: { axisPressedMouseMove: false },
+      handleScroll: false,
+      handleScale: false,
     });
 
     const series = chart.addSeries(AreaSeries, {

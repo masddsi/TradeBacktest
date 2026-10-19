@@ -338,7 +338,7 @@ export function SimulatorView() {
         </div>
       </Panel>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
           label="Banca final"
           value={brl(sim.finalEquity)}

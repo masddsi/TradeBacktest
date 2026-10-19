@@ -20,7 +20,7 @@ export function Dashboard({
   onEditTrade: (trade: Trade) => void;
   onDayClick: (date: string) => void;
 }) {
-  const [range, setRange] = useState<RangeKey>('month');
+  const [range, setRange] = useState<RangeKey>('all');
   const params = useMemo(() => rangeFor(range), [range]);
   const { data: stats } = useStats(params);
   const { data: allTrades } = useTrades();
@@ -56,7 +56,7 @@ export function Dashboard({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <KpiCard
           label="Resultado líquido"
           value={brlSigned(stats?.totalPnl ?? 0)}

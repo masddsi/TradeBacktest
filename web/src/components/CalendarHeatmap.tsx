@@ -32,7 +32,18 @@ export function CalendarHeatmap({
   trades: Trade[];
   onDayClick?: (date: string) => void;
 }) {
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const currentMonth = useMemo(() => startOfMonth(new Date()), []);
+
+  const latestMonth = useMemo(() => {
+    let latest = '';
+    for (const t of trades) {
+      if (t.date > latest) latest = t.date;
+    }
+    return latest ? startOfMonth(new Date(`${latest}T12:00:00`)) : null;
+  }, [trades]);
+
+  const [selectedMonth, setSelectedMonth] = useState<Date | null>(null);
+  const month = selectedMonth ?? latestMonth ?? currentMonth;
 
   const byDate = useMemo(() => {
     const map = new Map<string, Trade>();
@@ -82,7 +93,7 @@ export function CalendarHeatmap({
           <select
             value={month.getMonth()}
             onChange={(e) =>
-              setMonth(new Date(month.getFullYear(), Number(e.target.value), 1))
+              setSelectedMonth(new Date(month.getFullYear(), Number(e.target.value), 1))
             }
             className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-text capitalize outline-none focus:border-accent/60"
             aria-label="Selecionar mês"
@@ -96,7 +107,7 @@ export function CalendarHeatmap({
           <select
             value={month.getFullYear()}
             onChange={(e) =>
-              setMonth(new Date(Number(e.target.value), month.getMonth(), 1))
+              setSelectedMonth(new Date(Number(e.target.value), month.getMonth(), 1))
             }
             className="rounded-lg border border-border bg-surface px-2 py-1.5 font-mono text-xs text-text outline-none focus:border-accent/60"
             aria-label="Selecionar ano"
@@ -123,14 +134,14 @@ export function CalendarHeatmap({
           </span>
           <div className="flex gap-1">
             <button
-              onClick={() => setMonth((m) => subMonths(m, 1))}
+              onClick={() => setSelectedMonth(subMonths(month, 1))}
               className="rounded-md border border-border p-1 text-muted hover:border-border-strong hover:text-text"
               aria-label="Mês anterior"
             >
               <ChevronLeft size={15} />
             </button>
             <button
-              onClick={() => setMonth((m) => addMonths(m, 1))}
+              onClick={() => setSelectedMonth(addMonths(month, 1))}
               className="rounded-md border border-border p-1 text-muted hover:border-border-strong hover:text-text"
               aria-label="Próximo mês"
             >
