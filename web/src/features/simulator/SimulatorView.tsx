@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlaskConical, Info, RotateCcw } from 'lucide-react';
+import { FlaskConical, Info } from 'lucide-react';
 import { useSettings, useTrades } from '../../lib/hooks';
 import { monthKey, monthShortLabel, monthsWithData } from '../../lib/ranges';
 import { brl, brlSigned, pct, shortDate } from '../../lib/format';
@@ -149,16 +149,6 @@ export function SimulatorView() {
     );
   }
 
-  function reset() {
-    setSource('all');
-    setMonths([]);
-    setLote(1);
-    setBanca(null);
-    setMeta(0);
-    setMaxLoss(0);
-    setMaxDaily(0);
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-2.5 rounded-xl border border-border bg-panel px-4 py-3">
@@ -170,12 +160,6 @@ export function SimulatorView() {
           você passaria (aprovado ou reprovado). É só leitura: nada é salvo e as operações do journal não
           são alteradas.
         </p>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <Button variant="outline" onClick={reset}>
-          <RotateCcw size={14} /> Restaurar
-        </Button>
       </div>
 
       <Panel
@@ -343,6 +327,7 @@ export function SimulatorView() {
           label="Banca final"
           value={brl(sim.finalEquity)}
           tone={sim.finalEquity >= bancaInicial ? 'gain' : 'loss'}
+          hint="Saldo ao final da simulação: banca inicial mais o P&L das operações simuladas, já considerando a meta e os limites."
           sub={
             sim.skipped > 0
               ? `${sim.event === 'meta' ? 'na aprovação' : 'na reprovação'} · ini ${brl(bancaInicial)}`
@@ -354,30 +339,35 @@ export function SimulatorView() {
           value={brlSigned(sim.totalPnl)}
           tone={sim.totalPnl >= 0 ? 'gain' : 'loss'}
           sub={`${sim.rows.length} operações`}
+          hint="Resultado total das operações recalculadas com o lote fixo escolhido."
         />
         <KpiCard
           label="Acerto"
           value={pct(sim.winRate)}
           tone="accent"
           sub={`${sim.wins}W · ${sim.losses}L`}
+          hint="Percentual de operações vencedoras entre as operações efetivamente simuladas."
         />
         <KpiCard
           label="Drawdown máx"
           value={brl(sim.maxDrawdown)}
           tone="loss"
           sub="pico até o vale"
+          hint="Maior queda da banca simulada desde um topo até o vale seguinte, em R$."
         />
         <KpiCard
           label="ROI"
           value={pct(sim.roi)}
           tone={sim.roi >= 0 ? 'gain' : 'loss'}
           sub="sobre a banca inicial"
+          hint="Retorno sobre a banca inicial: P&L simulado dividido pela banca inicial."
         />
         <KpiCard
           label="Status do exame"
           value={STATUS_LABEL[sim.status]}
           tone={STATUS_TONE[sim.status]}
           sub={statusSub}
+          hint="Aprovado ao atingir a meta; reprovado ao violar a perda diária ou total; em andamento quando o período termina sem nenhuma decisão."
         />
       </div>
 

@@ -62,6 +62,7 @@ export function Dashboard({
           value={brlSigned(stats?.totalPnl ?? 0)}
           tone={(stats?.totalPnl ?? 0) >= 0 ? 'gain' : 'loss'}
           sub={`${stats?.wins ?? 0}W · ${stats?.losses ?? 0}L`}
+          hint="Soma dos resultados das operações do período: ganhos menos perdas. Valores positivos indicam lucro; negativos, prejuízo."
           icon={stats && stats.totalPnl >= 0 ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
         />
         <KpiCard
@@ -69,6 +70,7 @@ export function Dashboard({
           value={pct(stats?.winRate ?? 0)}
           tone="accent"
           sub={`${stats?.total ?? 0} operações`}
+          hint="Percentual de operações vencedoras (WIN) no período. É calculada como WINs ÷ total de operações."
           icon={<Target size={15} />}
         />
         <KpiCard
@@ -76,24 +78,28 @@ export function Dashboard({
           value={ratio(stats?.profitFactor ?? 0)}
           tone={(stats?.profitFactor ?? 0) >= 1 ? 'gain' : 'loss'}
           sub={`${brl(stats?.grossProfit ?? 0)} / ${brl(stats?.grossLoss ?? 0)}`}
+          hint="Ganhos brutos divididos pelas perdas brutas. Acima de 1 significa lucro; abaixo de 1, prejuízo."
           icon={<Activity size={15} />}
         />
         <KpiCard
           label="Payoff"
           value={ratio(stats?.payoff ?? 0)}
           sub={`G ${brl(stats?.avgWin ?? 0)} · L ${brl(stats?.avgLoss ?? 0)}`}
+          hint="Ganho médio das operações vencedoras dividido pela perda média das perdedoras: quanto se ganha, em média, para cada R$ 1 perdido."
         />
         <KpiCard
           label="Sequência"
           value={`${stats?.currentStreak ?? 0} ${stats?.currentResult ?? ''}`.trim()}
           tone={streakTone}
           sub={`máx ${stats?.maxWinStreak ?? 0}W / ${stats?.maxLossStreak ?? 0}L`}
+          hint="Resultado da sequência atual (WIN ou LOSS) e quantas operações ela dura. O texto abaixo mostra a maior sequência de ganhos e de perdas do período."
         />
         <KpiCard
           label="Drawdown máx"
           value={brl(stats?.maxDrawdown ?? 0)}
           tone="loss"
           sub={`melhor ${brl(stats?.bestDay?.pnl ?? 0)} · pior ${brl(stats?.worstDay?.pnl ?? 0)}`}
+          hint="Maior queda da curva de capital desde um topo até o vale seguinte. O texto abaixo mostra o melhor e o pior dia do período."
         />
       </div>
 
