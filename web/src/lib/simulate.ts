@@ -9,6 +9,11 @@ export interface ExamRules {
   maxDailyLoss: number;
 }
 
+export type Management = 'conservador' | 'arrojado';
+
+const PROFIT_STEP = 1000;
+const CONTRACT_STEP = 2;
+
 export type ExamEvent = 'meta' | 'daily' | 'total';
 export type ExamStatus = 'aprovado' | 'reprovado' | 'em_andamento' | 'sem_dados';
 
@@ -72,9 +77,10 @@ export function simulateExam(
     lote,
     bancaInicial,
     rules,
-  }: { lote: number; bancaInicial: number; rules: ExamRules },
+    management = 'conservador',
+  }: { lote: number; bancaInicial: number; rules: ExamRules; management?: Management },
 ): SimResult {
-  const contracts = toLote(lote);
+  const baseContracts = toLote(lote);
   const initial = nonNegative(bancaInicial);
   const meta = nonNegative(rules.meta);
   const maxLoss = nonNegative(rules.maxLoss);
@@ -87,11 +93,14 @@ export function simulateExam(
   let maxDrawdown = 0;
   let wins = 0;
   let losses = 0;
+  let tier = 0;
   let event: ExamEvent | null = null;
   let eventDate: string | null = null;
 
   const rows: SimRow[] = [];
   for (const trade of ordered) {
+    const contracts =
+      management === 'arrojado' ? baseContracts + tier * CONTRACT_STEP : baseContracts;
     const valuePerContract = trade.pnl / trade.contracts;
     const pnl = valuePerContract * contracts;
     equity += pnl;
@@ -119,6 +128,14 @@ export function simulateExam(
 
     rows.push(row);
     if (event) break;
+
+    if (management === 'arrojado') {
+      const profit = equity - initial;
+      tier =
+        profit <= 0
+          ? 0
+          : Math.max(tier, Math.floor((profit + 1e-9) / PROFIT_STEP));
+    }
   }
 
   const skipped = ordered.length - rows.length;

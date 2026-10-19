@@ -9,7 +9,7 @@ Roda inteiramente na sua máquina: o banco de dados é um arquivo SQLite local e
 - **Dashboard** — resultado líquido, taxa de acerto, profit factor, payoff, sequência, drawdown, curva de capital, desempenho por módulo e por direção e calendário de resultados.
 - **Histórico** — lista do mês com filtros, edição e exclusão.
 - **Journal** — revisão do contexto e das anotações de cada dia.
-- **Simulador de teste de mesa proprietária** — recalcula as operações já registradas com outro número de contratos e outra banca inicial. Escolha a fonte de dados (todas as operações ou meses específicos), defina a meta do teste e os limites de perda, e veja se você passaria. A simulação encerra no momento da decisão (aprovação ou reprovação) e é somente leitura: não altera o journal.
+- **Simulador de teste de mesa proprietária** — recalcula as operações já registradas com outro número de contratos e outra banca inicial. Escolha a fonte de dados (todas as operações ou meses específicos), o gerenciamento de contratos (**conservador**, com lote fixo, ou **arrojado**, com +2 contratos a cada R$ 1.000 de lucro sobre a banca inicial), a meta do teste e os limites de perda, e veja se você passaria. A simulação encerra no momento da decisão (aprovação ou reprovação) e é somente leitura: não altera o journal.
 - **Configurações** — valor por contrato, meta diária, limite de perda diária e banca.
 
 ## Requisitos

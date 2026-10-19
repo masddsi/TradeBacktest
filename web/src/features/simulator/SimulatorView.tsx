@@ -3,7 +3,13 @@ import { FlaskConical, Info } from 'lucide-react';
 import { useSettings, useTrades } from '../../lib/hooks';
 import { monthKey, monthShortLabel, monthsWithData } from '../../lib/ranges';
 import { brl, brlSigned, pct, shortDate } from '../../lib/format';
-import { simulateExam, type ExamEvent, type ExamRules, type ExamStatus } from '../../lib/simulate';
+import {
+  simulateExam,
+  type ExamEvent,
+  type ExamRules,
+  type ExamStatus,
+  type Management,
+} from '../../lib/simulate';
 import { EquityChart } from '../../components/EquityChart';
 import { KpiCard } from '../../components/KpiCard';
 import { Button, EmptyState, Panel, Pill, ResultBadge } from '../../components/ui';
@@ -78,6 +84,7 @@ export function SimulatorView() {
   const [source, setSource] = useState<Source>('all');
   const [months, setMonths] = useState<string[]>([]);
   const [lote, setLote] = useState(1);
+  const [management, setManagement] = useState<Management>('conservador');
   const [banca, setBanca] = useState<number | null>(null);
   const [meta, setMeta] = useState(0);
   const [maxLoss, setMaxLoss] = useState(0);
@@ -102,8 +109,8 @@ export function SimulatorView() {
   }, [trades, source, months]);
 
   const sim = useMemo(
-    () => simulateExam(scoped, { lote, bancaInicial, rules }),
-    [scoped, lote, bancaInicial, rules],
+    () => simulateExam(scoped, { lote, bancaInicial, rules, management }),
+    [scoped, lote, bancaInicial, rules, management],
   );
 
   const curve = useMemo(
@@ -155,7 +162,7 @@ export function SimulatorView() {
         <Info size={15} className="mt-0.5 shrink-0 text-accent" />
         <p className="text-xs leading-relaxed text-muted">
           Simule um teste de mesa proprietária com as operações que você já registrou. Escolha a fonte de
-          dados, o número de contratos e a banca inicial, defina a meta do teste e os limites de perda — o
+          dados, o gerenciamento de contratos, a banca inicial, a meta do teste e os limites de perda — o
           simulador recalcula cada operação, mostra a banca acumulada até a decisão do teste e indica se
           você passaria (aprovado ou reprovado). É só leitura: nada é salvo e as operações do journal não
           são alteradas.
@@ -237,12 +244,32 @@ export function SimulatorView() {
 
       <Panel
         title="Parâmetros da simulação"
-        subtitle="Reavalie as operações selecionadas com outro lote e outra banca inicial"
+        subtitle="Reavalie as operações com outro lote, banca inicial e gerenciamento de contratos"
       >
+        <div className="mb-4">
+          <span className="mb-1.5 block text-xs font-medium text-muted">Gerenciamento do teste</span>
+          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-panel p-1">
+            <Pill
+              active={management === 'conservador'}
+              onClick={() => setManagement('conservador')}
+            >
+              Conservador
+            </Pill>
+            <Pill active={management === 'arrojado'} onClick={() => setManagement('arrojado')}>
+              Arrojado
+            </Pill>
+          </div>
+          <p className="mt-1.5 text-[11px] text-muted/70">
+            {management === 'conservador'
+              ? 'Mantém o mesmo número de contratos durante todo o teste.'
+              : 'A cada R$ 1.000 de lucro sobre a banca inicial, adiciona 2 contratos à operação seguinte. Se a banca voltar à inicial ou menos, retorna ao lote inicial.'}
+          </p>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div>
             <span className="mb-1.5 block text-xs font-medium text-muted">
-              Contratos por operação
+              {management === 'conservador' ? 'Contratos por operação' : 'Contratos iniciais'}
             </span>
             <div className="flex items-stretch gap-1">
               <button
@@ -316,7 +343,7 @@ export function SimulatorView() {
           <div className="flex items-end">
             <p className="rounded-lg border border-border bg-surface px-3 py-2 text-[11px] text-muted">
               Cada operação mantém o R$/contrato registrado (inclui perdas personalizadas) e é
-              redimensionada para o lote fixo. Nada é salvo.
+              redimensionada para o lote do gerenciamento escolhido. Nada é salvo.
             </p>
           </div>
         </div>
@@ -339,7 +366,7 @@ export function SimulatorView() {
           value={brlSigned(sim.totalPnl)}
           tone={sim.totalPnl >= 0 ? 'gain' : 'loss'}
           sub={`${sim.rows.length} operações`}
-          hint="Resultado total das operações recalculadas com o lote fixo escolhido."
+          hint="Resultado total das operações recalculadas com o gerenciamento de contratos escolhido."
         />
         <KpiCard
           label="Acerto"
@@ -374,7 +401,7 @@ export function SimulatorView() {
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel
           title="Curva de banca"
-          subtitle="Banca acumulada com o lote e a banca inicial simulados"
+          subtitle="Banca acumulada com os contratos e a banca inicial simulados"
           className="xl:col-span-2"
         >
           <div className="h-[300px]">
@@ -452,9 +479,11 @@ export function SimulatorView() {
 
       <Panel
         title="Operações simuladas"
-        subtitle={`Ordem cronológica · lote fixo de ${lote} ${lote === 1 ? 'contrato' : 'contratos'}${
-          sim.skipped > 0 ? ` · encerrada na ${sim.event === 'meta' ? 'aprovação' : 'reprovação'}` : ''
-        }`}
+        subtitle={`Ordem cronológica · lote ${
+          management === 'conservador' ? 'fixo' : 'inicial'
+        } de ${lote} ${lote === 1 ? 'contrato' : 'contratos'}${
+          management === 'arrojado' ? ' · gerenciamento arrojado' : ''
+        }${sim.skipped > 0 ? ` · encerrada na ${sim.event === 'meta' ? 'aprovação' : 'reprovação'}` : ''}`}
         bodyClassName="p-0"
       >
         {isLoading ? (
