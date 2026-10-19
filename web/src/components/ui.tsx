@@ -21,8 +21,8 @@ export function Panel({
       className={`rounded-xl border border-border bg-panel shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset] ${className}`}
     >
       {(title || action) && (
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <div>
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-3">
+          <div className="min-w-0">
             {title && (
               <h2 className="text-[13px] font-semibold tracking-wide text-text uppercase">{title}</h2>
             )}

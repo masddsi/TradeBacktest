@@ -135,13 +135,17 @@ export function SettingsView() {
       <Panel title="Pré-visualização">
         <p className="text-xs text-muted">Como o resultado é calculado:</p>
         <div className="mt-3 space-y-2 font-mono text-sm">
-          <div className="flex items-center justify-between rounded-lg border border-gain/30 bg-gain/10 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-gain/30 bg-gain/10 px-3 py-2">
             <span className="text-gain">1 contrato · GAIN</span>
-            <span className="font-semibold text-gain">{brlSigned(form.gain_per_contract)}</span>
+            <span className="text-right font-semibold text-gain">
+              {brlSigned(form.gain_per_contract)}
+            </span>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-loss/30 bg-loss/10 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2">
             <span className="text-loss">1 contrato · LOSS</span>
-            <span className="font-semibold text-loss">{brlSigned(-form.loss_per_contract)}</span>
+            <span className="text-right font-semibold text-loss">
+              {brlSigned(-form.loss_per_contract)}
+            </span>
           </div>
         </div>
         <div className="mt-3 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-muted">

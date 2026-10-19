@@ -3,13 +3,17 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 });
 
+function normalizeSpaces(value: string): string {
+  return value.replace(/\u00A0/g, ' ');
+}
+
 export function brl(value: number): string {
-  return brlFormatter.format(value);
+  return normalizeSpaces(brlFormatter.format(value));
 }
 
 export function brlSigned(value: number): string {
   const sign = value > 0 ? '+' : value < 0 ? '-' : '';
-  return `${sign}${brlFormatter.format(Math.abs(value))}`;
+  return `${sign}${normalizeSpaces(brlFormatter.format(Math.abs(value)))}`;
 }
 
 export function pct(value: number): string {

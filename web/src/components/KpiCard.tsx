@@ -23,13 +23,23 @@ export function KpiCard({
           : 'text-text';
 
   return (
-    <div className="rounded-xl border border-border bg-panel px-4 py-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium tracking-wider text-muted uppercase">{label}</span>
-        {icon && <span className="text-muted/70">{icon}</span>}
+    <div className="min-w-0 rounded-xl border border-border bg-panel px-4 py-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-[11px] leading-snug font-medium tracking-wider text-muted uppercase">
+          {label}
+        </span>
+        {icon && <span className="shrink-0 text-muted/70">{icon}</span>}
       </div>
-      <div className={`mt-2 font-mono text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
-      {sub && <div className="mt-1 font-mono text-xs text-muted tabular-nums">{sub}</div>}
+      <div
+        className={`mt-2 font-mono text-xl leading-tight font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-2xl ${toneClass}`}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div className="mt-1 font-mono text-xs leading-snug text-muted tabular-nums [overflow-wrap:anywhere]">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

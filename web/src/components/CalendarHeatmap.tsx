@@ -77,8 +77,8 @@ export function CalendarHeatmap({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={month.getMonth()}
             onChange={(e) =>
@@ -113,7 +113,7 @@ export function CalendarHeatmap({
             {monthTrades.length > 0 && ` · ${pct(winRate)} acerto`}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <span
             className={`font-mono text-sm font-semibold tabular-nums ${
               monthPnl > 0 ? 'text-gain' : monthPnl < 0 ? 'text-loss' : 'text-muted'

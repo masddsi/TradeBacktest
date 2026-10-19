@@ -400,28 +400,36 @@ export function SimulatorView() {
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between gap-3">
               <span className="text-muted">Meta do Teste</span>
-              <span className="font-mono text-xs">{rules.meta > 0 ? brl(rules.meta) : '—'}</span>
+              <span className="shrink-0 text-right font-mono text-xs">
+                {rules.meta > 0 ? brl(rules.meta) : '—'}
+              </span>
             </li>
             <li className="flex items-center justify-between gap-3">
               <span className="text-muted">Perda máxima total</span>
-              <span className="font-mono text-xs">{rules.maxLoss > 0 ? brl(rules.maxLoss) : '—'}</span>
+              <span className="shrink-0 text-right font-mono text-xs">
+                {rules.maxLoss > 0 ? brl(rules.maxLoss) : '—'}
+              </span>
             </li>
             <li className="flex items-center justify-between gap-3">
               <span className="text-muted">Perda máxima diária</span>
-              <span className="font-mono text-xs">
+              <span className="shrink-0 text-right font-mono text-xs">
                 {rules.maxDailyLoss > 0 ? brl(rules.maxDailyLoss) : '—'}
               </span>
             </li>
             {rules.maxLoss > 0 && (
               <li className="flex items-center justify-between gap-3 border-t border-border pt-2">
                 <span className="text-muted">Margem de perda restante</span>
-                <span className="font-mono text-xs text-loss">{brl(sim.remainingLoss)}</span>
+                <span className="shrink-0 text-right font-mono text-xs text-loss">
+                  {brl(sim.remainingLoss)}
+                </span>
               </li>
             )}
             {rules.meta > 0 && sim.status === 'em_andamento' && (
               <li className="flex items-center justify-between gap-3">
                 <span className="text-muted">Falta para a meta</span>
-                <span className="font-mono text-xs text-accent">{brl(sim.missingToGoal)}</span>
+                <span className="shrink-0 text-right font-mono text-xs text-accent">
+                  {brl(sim.missingToGoal)}
+                </span>
               </li>
             )}
           </ul>

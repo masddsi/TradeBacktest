@@ -45,8 +45,8 @@ export function JournalView({ onEditTrade }: { onEditTrade: (trade: Trade) => vo
               key={t.id}
               className="rounded-xl border border-border bg-panel p-4 transition-colors hover:border-border-strong"
             >
-              <header className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <header className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                   <div>
                     <div className="font-mono text-sm font-semibold">{shortDate(t.date)}</div>
                     <div className="text-[11px] capitalize text-muted">{weekday(t.date)}</div>
@@ -64,7 +64,7 @@ export function JournalView({ onEditTrade }: { onEditTrade: (trade: Trade) => vo
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-3">
                   <span
                     className={`font-mono text-sm font-bold tabular-nums ${
                       t.pnl >= 0 ? 'text-gain' : 'text-loss'

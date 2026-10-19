@@ -237,15 +237,15 @@ export function Dashboard({
 
         <div className="space-y-4">
           <Panel title="Status de hoje">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-2xl font-bold tabular-nums">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <span className="font-mono text-xl font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl">
                 <span
                   className={todayPnl > 0 ? 'text-gain' : todayPnl < 0 ? 'text-loss' : 'text-muted'}
                 >
                   {todayPnl === 0 ? brl(0) : brlSigned(todayPnl)}
                 </span>
               </span>
-              <span className="font-mono text-xs text-muted">
+              <span className="text-right font-mono text-xs text-muted">
                 meta {brl(goal)} · stop {brl(settings?.daily_max_loss ?? 0)}
               </span>
             </div>
@@ -265,7 +265,7 @@ export function Dashboard({
                   : 'Progresso em relação à meta diária.'}
             </p>
             {bankroll > 0 && (
-              <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-3 py-2">
                 <span className="text-xs text-muted">Banca atual</span>
                 <span className="text-right">
                   <span
@@ -294,13 +294,13 @@ export function Dashboard({
                       onClick={() => onEditTrade(t)}
                       className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-panel-2/50"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="w-16 font-mono text-xs text-muted">{shortDate(t.date)}</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="w-14 font-mono text-xs text-muted">{shortDate(t.date)}</span>
                         <ResultBadge result={t.result} />
                         <span className="font-mono text-xs text-muted">{t.contracts}x</span>
                       </div>
                       <span
-                        className={`font-mono text-sm font-semibold tabular-nums ${
+                        className={`shrink-0 font-mono text-xs font-semibold tabular-nums sm:text-sm ${
                           t.pnl >= 0 ? 'text-gain' : 'text-loss'
                         }`}
                       >

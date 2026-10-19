@@ -288,10 +288,10 @@ export function TradeFormModal({ open, onClose, trade = null, initialDate }: Pro
             />
           </label>
 
-          <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-4 py-3">
             <span className="text-xs font-medium text-muted uppercase">Resultado do dia</span>
             <span
-              className={`font-mono text-xl font-bold tabular-nums ${
+              className={`text-right font-mono text-lg font-bold tabular-nums [overflow-wrap:anywhere] sm:text-xl ${
                 preview > 0 ? 'text-gain' : preview < 0 ? 'text-loss' : 'text-muted'
               }`}
             >

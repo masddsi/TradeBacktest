@@ -52,7 +52,7 @@ export function HistoryView({
       title="Histórico de operações"
       bodyClassName="p-0"
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="month"
             value={month}

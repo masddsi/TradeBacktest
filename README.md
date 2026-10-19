@@ -47,7 +47,8 @@ Tudo é local:
 
 - O banco é criado automaticamente na primeira execução em **`server/tradelog.db`** (SQLite, modo WAL).
 - Os dados **nunca saem da sua máquina** — não há login, servidor na nuvem nem telemetria.
-- **Backup**: com o servidor parado, copie o arquivo `server/tradelog.db` para outro lugar.
+- **Backup**: use **Exportar banco** no menu lateral para baixar um arquivo `.db` completo (funciona com o app aberto). Também é possível, com o servidor parado, copiar `server/tradelog.db` manualmente.
+- **Restaurar**: com o app parado, substitua `server/tradelog.db` pelo arquivo exportado e apague `server/tradelog.db-wal` e `server/tradelog.db-shm` antigos antes de iniciar.
 - Para começar do zero, apague o arquivo (ele é recriado no próximo boot) ou use *Configurações → Apagar todas as operações*.
 
 > O arquivo do banco está no `.gitignore`. Se você for contribuir, cuidado para não commitar seus dados.

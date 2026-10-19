@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
+  Download,
   FlaskConical,
   History,
   Plus,
@@ -15,6 +16,7 @@ import { SettingsView } from './features/settings/SettingsView';
 import { SimulatorView } from './features/simulator/SimulatorView';
 import { TradeFormModal } from './components/TradeFormModal';
 import { Button } from './components/ui';
+import { api } from './lib/api';
 import type { Trade } from './lib/types';
 
 type View = 'dashboard' | 'history' | 'journal' | 'simulator' | 'settings';
@@ -40,6 +42,12 @@ export function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Trade | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState<{
+    kind: 'ok' | 'error';
+    text: string;
+  } | null>(null);
+  const feedbackTimer = useRef<number | undefined>(undefined);
 
   const openNew = useCallback((date?: string) => {
     setEditing(null);
@@ -51,6 +59,24 @@ export function App() {
     setEditing(trade);
     setInitialDate(undefined);
     setModalOpen(true);
+  }, []);
+
+  const exportDatabase = useCallback(async () => {
+    if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current);
+    setExporting(true);
+    setExportFeedback(null);
+    try {
+      await api.exportDatabase();
+      setExportFeedback({ kind: 'ok', text: 'Backup baixado.' });
+      feedbackTimer.current = window.setTimeout(() => setExportFeedback(null), 2500);
+    } catch (err) {
+      setExportFeedback({
+        kind: 'error',
+        text: err instanceof Error ? err.message : 'Falha ao exportar o banco.',
+      });
+    } finally {
+      setExporting(false);
+    }
   }, []);
 
   return (
@@ -82,7 +108,25 @@ export function App() {
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          <div className="flex items-center gap-2 rounded-lg bg-panel px-3 py-2">
+          <button
+            onClick={exportDatabase}
+            disabled={exporting}
+            title="Baixa uma cópia completa do banco. Para restaurar, use com o app parado."
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-panel-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download size={17} />
+            {exporting ? 'Exportando…' : 'Exportar banco'}
+          </button>
+          {exportFeedback && (
+            <p
+              className={`mt-1 px-3 text-[11px] ${
+                exportFeedback.kind === 'ok' ? 'text-gain' : 'text-loss'
+              }`}
+            >
+              {exportFeedback.text}
+            </p>
+          )}
+          <div className="mt-2 flex items-center gap-2 rounded-lg bg-panel px-3 py-2">
             <span className="h-2 w-2 rounded-full bg-gain" />
             <span className="font-mono text-[11px] text-muted">local · SQLite</span>
           </div>
@@ -115,6 +159,24 @@ export function App() {
               {label}
             </button>
           ))}
+          <button
+            onClick={exportDatabase}
+            disabled={exporting}
+            title="Baixa uma cópia completa do banco. Para restaurar, use com o app parado."
+            className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download size={15} />
+            {exporting ? 'Exportando…' : 'Exportar'}
+          </button>
+          {exportFeedback && (
+            <span
+              className={`flex shrink-0 items-center px-2 text-xs ${
+                exportFeedback.kind === 'ok' ? 'text-gain' : 'text-loss'
+              }`}
+            >
+              {exportFeedback.text}
+            </span>
+          )}
         </nav>
 
         <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
