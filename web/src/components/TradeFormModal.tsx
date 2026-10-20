@@ -44,7 +44,7 @@ export function TradeFormModal({ open, onClose, trade = null, initialDate }: Pro
       setCustomLoss(isCustom ? String(-trade.pnl) : '');
     } else {
       setDate(initialDate ?? todayISO());
-      setContracts(1);
+      setContracts(settings?.contracts ?? 1);
       setResult('WIN');
       setSetup('');
       setDirection(null);
@@ -66,6 +66,10 @@ export function TradeFormModal({ open, onClose, trade = null, initialDate }: Pro
 
   const gain = settings?.gain_per_contract ?? 60;
   const loss = settings?.loss_per_contract ?? 100;
+  // Atalhos padrão + a quantidade configurada em Configurações, quando ela cabe no botão.
+  const quickContracts = [...new Set([1, 2, 5, 10, settings?.contracts ?? 1])]
+    .filter((n) => n >= 1 && n <= 100)
+    .sort((a, b) => a - b);
   const customLossValue = Number(customLoss);
   const hasCustomLoss =
     result === 'LOSS' && customLoss.trim() !== '' && Number.isFinite(customLossValue) && customLossValue > 0;
@@ -158,7 +162,7 @@ export function TradeFormModal({ open, onClose, trade = null, initialDate }: Pro
                 </button>
               </div>
               <div className="mt-1.5 flex gap-1">
-                {[1, 2, 5, 10].map((n) => (
+                {quickContracts.map((n) => (
                   <button
                     key={n}
                     type="button"

@@ -43,12 +43,17 @@ export function migrate(): void {
     insert.run('daily_goal', '300');
     insert.run('daily_max_loss', '200');
     insert.run('bankroll', '0');
+    insert.run('contracts', '1');
   } else {
     // Instalações existentes: garante as chaves novas sem sobrescrever valores do usuário.
     const ensure = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
     ensure.run('bankroll', '0');
+    ensure.run('contracts', '1');
   }
 }
+
+/** Limite superior aceito para a quantidade de contratos de uma operação. */
+export const MAX_CONTRACTS = 100000;
 
 export interface Settings {
   gain_per_contract: number;
@@ -56,6 +61,8 @@ export interface Settings {
   daily_goal: number;
   daily_max_loss: number;
   bankroll: number;
+  /** Quantidade padrão de contratos, aplicada às operações já registradas ao salvar. */
+  contracts: number;
 }
 
 const SETTINGS_KEYS: (keyof Settings)[] = [
@@ -64,7 +71,22 @@ const SETTINGS_KEYS: (keyof Settings)[] = [
   'daily_goal',
   'daily_max_loss',
   'bankroll',
+  'contracts',
 ];
+
+function isNonNegative(value: number): boolean {
+  return Number.isFinite(value) && value >= 0;
+}
+
+// `contracts` é a única chave que exige inteiro positivo.
+const SETTINGS_VALIDATORS: Record<keyof Settings, (value: number) => boolean> = {
+  gain_per_contract: isNonNegative,
+  loss_per_contract: isNonNegative,
+  daily_goal: isNonNegative,
+  daily_max_loss: isNonNegative,
+  bankroll: isNonNegative,
+  contracts: (value) => Number.isInteger(value) && value >= 1 && value <= MAX_CONTRACTS,
+};
 
 export function getSettings(): Settings {
   const rows = db.prepare('SELECT key, value FROM settings').all() as {
@@ -78,6 +100,7 @@ export function getSettings(): Settings {
     daily_goal: map.daily_goal ?? 300,
     daily_max_loss: map.daily_max_loss ?? 200,
     bankroll: map.bankroll ?? 0,
+    contracts: map.contracts ?? 1,
   };
 }
 
@@ -88,7 +111,7 @@ export function saveSettings(patch: Partial<Settings>): Settings {
   );
   for (const key of SETTINGS_KEYS) {
     const value = patch[key];
-    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    if (typeof value === 'number' && SETTINGS_VALIDATORS[key](value)) {
       upsert.run(key, String(value));
     }
   }
@@ -150,4 +173,43 @@ export function computePnl(result: TradeResult, contracts: number, s = getSettin
   return result === 'WIN'
     ? contracts * s.gain_per_contract
     : -contracts * s.loss_per_contract;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Reescreve a quantidade de contratos de todas as operações já registradas e
+ * recalcula o pnl a partir do R$/contrato gravado (pnl / contracts), o que
+ * preserva perdas personalizadas — `loss_total` não é persistido.
+ * Operações que já estão na quantidade pedida não são tocadas.
+ */
+export function setContractsForAllTrades(contracts: number): number {
+  if (!Number.isInteger(contracts) || contracts < 1 || contracts > MAX_CONTRACTS) {
+    throw new Error('Quantidade de contratos inválida.');
+  }
+
+  const rows = db.prepare('SELECT id, contracts, pnl FROM trades').all() as {
+    id: number;
+    contracts: number;
+    pnl: number;
+  }[];
+  const update = db.prepare('UPDATE trades SET contracts = ?, pnl = ? WHERE id = ?');
+
+  let updated = 0;
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    for (const row of rows) {
+      if (row.contracts === contracts) continue;
+      const valuePerContract = row.contracts > 0 ? row.pnl / row.contracts : 0;
+      update.run(contracts, round2(valuePerContract * contracts), row.id);
+      updated++;
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return updated;
 }

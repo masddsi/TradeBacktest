@@ -1,5 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { db, computePnl, SETUPS, type Direction, type Setup, type TradeResult } from '../db.js';
+import {
+  MAX_CONTRACTS,
+  db,
+  computePnl,
+  SETUPS,
+  type Direction,
+  type Setup,
+  type TradeResult,
+} from '../db.js';
 
 interface TradeInput {
   date: string;
@@ -18,7 +26,7 @@ function validate(body: unknown): { ok: true; data: TradeInput } | { ok: false; 
     return { ok: false, error: 'Data inválida (use AAAA-MM-DD).' };
   }
   const contracts = Number(b.contracts);
-  if (!Number.isInteger(contracts) || contracts <= 0 || contracts > 100000) {
+  if (!Number.isInteger(contracts) || contracts <= 0 || contracts > MAX_CONTRACTS) {
     return { ok: false, error: 'Quantidade de contratos inválida.' };
   }
   if (b.result !== 'WIN' && b.result !== 'LOSS') {

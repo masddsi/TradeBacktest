@@ -22,6 +22,12 @@ export interface Settings {
   daily_goal: number;
   daily_max_loss: number;
   bankroll: number;
+  contracts: number;
+}
+
+export interface SettingsResponse extends Settings {
+  /** Quantas operações já existentes foram recalculadas ao salvar. */
+  updated_trades?: number;
 }
 
 export interface TradeInput {

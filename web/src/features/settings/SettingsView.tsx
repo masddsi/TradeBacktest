@@ -11,16 +11,27 @@ const DEFAULTS: Settings = {
   daily_goal: 300,
   daily_max_loss: 200,
   bankroll: 0,
+  contracts: 1,
 };
 
 interface FieldDef {
   key: keyof Settings;
   label: string;
   hint: string;
-  prefix: string;
+  prefix?: string;
+  suffix?: string;
+  /** Campo de contagem: inteiro ≥ 1 em vez de valor monetário. */
+  integer?: boolean;
 }
 
 const FIELDS: FieldDef[] = [
+  {
+    key: 'contracts',
+    label: 'Contratos por operação',
+    hint: 'Quantidade padrão. Ao salvar com um valor diferente, todas as operações já registradas são recalculadas.',
+    suffix: 'contratos',
+    integer: true,
+  },
   {
     key: 'gain_per_contract',
     label: 'Gain por contrato',
@@ -54,7 +65,7 @@ export function SettingsView() {
   const { data: trades } = useTrades();
   const deleteAllTrades = useDeleteAllTrades();
   const [form, setForm] = useState<Settings>(DEFAULTS);
-  const [saved, setSaved] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const tradeCount = trades?.length ?? 0;
@@ -65,13 +76,36 @@ export function SettingsView() {
 
   function set(key: keyof Settings, value: number) {
     setForm((f) => ({ ...f, [key]: value }));
-    setSaved(false);
+    setFeedback(null);
   }
 
   async function save() {
-    await updateSettings.mutateAsync(form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setError(null);
+
+    const previous = data?.contracts ?? DEFAULTS.contracts;
+    if (form.contracts !== previous && tradeCount > 0) {
+      const label = form.contracts === 1 ? '1 contrato' : `${form.contracts} contratos`;
+      const plural = tradeCount === 1 ? 'operação já registrada' : 'operações já registradas';
+      const confirmed = window.confirm(
+        `Recalcular ${tradeCount} ${plural} com ${label}?\n\nO resultado (pnl) de cada operação será refeito com a nova quantidade de contratos.`,
+      );
+      if (!confirmed) return;
+    }
+
+    try {
+      const result = await updateSettings.mutateAsync(form);
+      const updated = result.updated_trades ?? 0;
+      setFeedback(
+        updated > 0
+          ? `Configurações salvas · ${updated} ${
+              updated === 1 ? 'operação recalculada' : 'operações recalculadas'
+            }.`
+          : 'Configurações salvas.',
+      );
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar as configurações.');
+    }
   }
 
   async function deleteAll() {
@@ -101,14 +135,24 @@ export function SettingsView() {
             <label key={f.key} className="block">
               <span className="mb-1.5 block text-xs font-medium text-muted">{f.label}</span>
               <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 focus-within:border-accent/60">
-                <span className="font-mono text-xs text-muted">{f.prefix}</span>
+                {f.prefix && <span className="font-mono text-xs text-muted">{f.prefix}</span>}
                 <input
                   type="number"
-                  min={0}
+                  min={f.integer ? 1 : 0}
+                  step={f.integer ? 1 : 'any'}
                   value={form[f.key]}
-                  onChange={(e) => set(f.key, Math.max(0, Number(e.target.value) || 0))}
+                  onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    set(
+                      f.key,
+                      f.integer ? Math.max(1, Math.floor(raw || 1)) : Math.max(0, raw || 0),
+                    );
+                  }}
                   className="w-full bg-transparent font-mono text-sm text-text outline-none"
                 />
+                {f.suffix && (
+                  <span className="shrink-0 font-mono text-xs text-muted">{f.suffix}</span>
+                )}
               </div>
               <span className="mt-1 block text-[11px] text-muted/70">{f.hint}</span>
             </label>
@@ -123,12 +167,12 @@ export function SettingsView() {
             variant="outline"
             onClick={() => {
               setForm(DEFAULTS);
-              setSaved(false);
+              setFeedback(null);
             }}
           >
             <RotateCcw size={14} /> Restaurar padrão
           </Button>
-          {saved && <span className="text-xs text-gain">Configurações salvas.</span>}
+          {feedback && <span className="text-xs text-gain">{feedback}</span>}
         </div>
       </Panel>
 
@@ -136,21 +180,25 @@ export function SettingsView() {
         <p className="text-xs text-muted">Como o resultado é calculado:</p>
         <div className="mt-3 space-y-2 font-mono text-sm">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-gain/30 bg-gain/10 px-3 py-2">
-            <span className="text-gain">1 contrato · GAIN</span>
+            <span className="text-gain">
+              {form.contracts} {form.contracts === 1 ? 'contrato' : 'contratos'} · GAIN
+            </span>
             <span className="text-right font-semibold text-gain">
-              {brlSigned(form.gain_per_contract)}
+              {brlSigned(form.contracts * form.gain_per_contract)}
             </span>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2">
-            <span className="text-loss">1 contrato · LOSS</span>
+            <span className="text-loss">
+              {form.contracts} {form.contracts === 1 ? 'contrato' : 'contratos'} · LOSS
+            </span>
             <span className="text-right font-semibold text-loss">
-              {brlSigned(-form.loss_per_contract)}
+              {brlSigned(-form.contracts * form.loss_per_contract)}
             </span>
           </div>
         </div>
         <div className="mt-3 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-muted">
-          Ex.: 5 contratos · GAIN = {brl(5 * form.gain_per_contract)}
-          <br />3 contratos · LOSS = {brl(-3 * form.loss_per_contract)}
+          Base: 1 contrato = GAIN {brl(form.gain_per_contract)} · LOSS{' '}
+          {brl(-form.loss_per_contract)}
         </div>
       </Panel>
 

@@ -1,4 +1,4 @@
-import type { Settings, Stats, Trade, TradeInput } from './types';
+import type { Settings, SettingsResponse, Stats, Trade, TradeInput } from './types';
 
 async function errorFrom(res: Response): Promise<Error> {
   let message = `Erro ${res.status}`;
@@ -54,7 +54,7 @@ export const api = {
   stats: (params: RangeParams = {}) => request<Stats>(`/stats${qs(params)}`),
   getSettings: () => request<Settings>('/settings'),
   updateSettings: (patch: Settings) =>
-    request<Settings>('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+    request<SettingsResponse>('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
   exportDatabase: async () => {
     const res = await fetch('/api/export/database');
     if (!res.ok) throw await errorFrom(res);
