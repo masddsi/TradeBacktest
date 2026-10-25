@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type RangeParams } from './api';
-import type { Settings, TradeInput } from './types';
+import { type Bankrolls, type Settings, type TradeInput } from './types';
 
 const TRADES_KEY = 'trades';
 const STATS_KEY = 'stats';
 const SETTINGS_KEY = 'settings';
+const BANKROLLS_KEY = 'bankrolls';
 
 export function useTrades(params: RangeParams = {}) {
   return useQuery({
@@ -24,6 +25,37 @@ export function useSettings() {
   return useQuery({
     queryKey: [SETTINGS_KEY],
     queryFn: () => api.getSettings(),
+  });
+}
+
+export function useBankrolls() {
+  return useQuery({
+    queryKey: [BANKROLLS_KEY],
+    queryFn: () => api.getBankrolls(),
+  });
+}
+
+function useInvalidateBankrolls() {
+  const qc = useQueryClient();
+  return (data: Bankrolls) => {
+    qc.setQueryData([BANKROLLS_KEY], data);
+  };
+}
+
+export function useSetBankroll() {
+  const apply = useInvalidateBankrolls();
+  return useMutation({
+    mutationFn: ({ year, bankroll }: { year: number; bankroll: number }) =>
+      api.setBankroll(year, bankroll),
+    onSuccess: apply,
+  });
+}
+
+export function useDeleteBankroll() {
+  const apply = useInvalidateBankrolls();
+  return useMutation({
+    mutationFn: (year: number) => api.deleteBankroll(year),
+    onSuccess: apply,
   });
 }
 

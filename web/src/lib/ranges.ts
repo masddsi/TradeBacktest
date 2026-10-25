@@ -7,8 +7,6 @@ export interface DateRange {
   to?: string;
 }
 
-export type RangeKey = 'all' | 'ytd' | 'month' | '30d' | '90d';
-
 function iso(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -16,35 +14,10 @@ function iso(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function rangeFor(key: RangeKey): DateRange {
-  const now = new Date();
-  switch (key) {
-    case 'month':
-      return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
-    case 'ytd':
-      return { from: `${now.getFullYear()}-01-01`, to: iso(now) };
-    case '30d': {
-      const d = new Date(now);
-      d.setDate(d.getDate() - 29);
-      return { from: iso(d), to: iso(now) };
-    }
-    case '90d': {
-      const d = new Date(now);
-      d.setDate(d.getDate() - 89);
-      return { from: iso(d), to: iso(now) };
-    }
-    default:
-      return {};
-  }
+/** Intervalo cobrindo um ano inteiro (AAAA-01-01 a AAAA-12-31). */
+export function yearRange(year: number): DateRange {
+  return { from: `${year}-01-01`, to: `${year}-12-31` };
 }
-
-export const RANGE_LABELS: Record<RangeKey, string> = {
-  month: 'Mês atual',
-  ytd: 'Ano',
-  '30d': '30 dias',
-  '90d': '90 dias',
-  all: 'Tudo',
-};
 
 export function resultTone(result: TradeResult): 'gain' | 'loss' {
   return result === 'WIN' ? 'gain' : 'loss';

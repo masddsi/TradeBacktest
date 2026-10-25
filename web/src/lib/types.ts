@@ -30,6 +30,9 @@ export interface SettingsResponse extends Settings {
   updated_trades?: number;
 }
 
+/** Banca inicial por ano. Ano ausente = sem banca definida. */
+export type Bankrolls = Record<string, number>;
+
 export interface TradeInput {
   date: string;
   contracts: number;

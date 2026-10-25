@@ -27,23 +27,38 @@ function iso(d: Date): string {
 
 export function CalendarHeatmap({
   trades,
+  year,
+  onYearChange,
   onDayClick,
 }: {
   trades: Trade[];
+  /** Ano controlado pelo componente pai (dashboard). */
+  year: number;
+  onYearChange: (year: number) => void;
   onDayClick?: (date: string) => void;
 }) {
   const currentMonth = useMemo(() => startOfMonth(new Date()), []);
 
-  const latestMonth = useMemo(() => {
+  const [selectedMonth, setSelectedMonth] = useState<Date | null>(null);
+
+  // Mês só vale se pertencer ao ano controlado; caso contrário, recalcula:
+  // último mês com operações do ano, ou o mesmo índice de mês de antes.
+  const month = useMemo(() => {
+    if (selectedMonth && selectedMonth.getFullYear() === year) return selectedMonth;
+    const monthIndex = selectedMonth ? selectedMonth.getMonth() : currentMonth.getMonth();
     let latest = '';
     for (const t of trades) {
-      if (t.date > latest) latest = t.date;
+      if (t.date.startsWith(`${year}-`) && t.date > latest) latest = t.date;
     }
-    return latest ? startOfMonth(new Date(`${latest}T12:00:00`)) : null;
-  }, [trades]);
+    return latest
+      ? startOfMonth(new Date(`${latest}T12:00:00`))
+      : startOfMonth(new Date(year, monthIndex, 1));
+  }, [selectedMonth, year, trades, currentMonth]);
 
-  const [selectedMonth, setSelectedMonth] = useState<Date | null>(null);
-  const month = selectedMonth ?? latestMonth ?? currentMonth;
+  function goMonth(next: Date) {
+    if (next.getFullYear() !== year) onYearChange(next.getFullYear());
+    setSelectedMonth(next);
+  }
 
   const byDate = useMemo(() => {
     const map = new Map<string, Trade>();
@@ -51,14 +66,14 @@ export function CalendarHeatmap({
     return map;
   }, [trades]);
 
-  // Anos disponíveis: ano atual para trás (20 anos) + ano selecionado (caso navegue além com as setas).
+  // Anos disponíveis: anos com operações + ano atual + ano selecionado.
   const years = useMemo(() => {
-    const current = new Date().getFullYear();
     const set = new Set<number>();
-    for (let y = current; y > current - 20; y--) set.add(y);
-    set.add(month.getFullYear());
+    for (const t of trades) set.add(Number(t.date.slice(0, 4)));
+    set.add(new Date().getFullYear());
+    set.add(year);
     return [...set].sort((a, b) => b - a);
-  }, [month]);
+  }, [trades, year]);
 
   const days = useMemo(
     () =>
@@ -105,10 +120,11 @@ export function CalendarHeatmap({
             ))}
           </select>
           <select
-            value={month.getFullYear()}
-            onChange={(e) =>
-              setSelectedMonth(new Date(Number(e.target.value), month.getMonth(), 1))
-            }
+            value={year}
+            onChange={(e) => {
+              onYearChange(Number(e.target.value));
+              setSelectedMonth(null);
+            }}
             className="rounded-lg border border-border bg-surface px-2 py-1.5 font-mono text-xs text-text outline-none focus:border-accent/60"
             aria-label="Selecionar ano"
           >
@@ -134,14 +150,14 @@ export function CalendarHeatmap({
           </span>
           <div className="flex gap-1">
             <button
-              onClick={() => setSelectedMonth(subMonths(month, 1))}
+              onClick={() => goMonth(subMonths(month, 1))}
               className="rounded-md border border-border p-1 text-muted hover:border-border-strong hover:text-text"
               aria-label="Mês anterior"
             >
               <ChevronLeft size={15} />
             </button>
             <button
-              onClick={() => setSelectedMonth(addMonths(month, 1))}
+              onClick={() => goMonth(addMonths(month, 1))}
               className="rounded-md border border-border p-1 text-muted hover:border-border-strong hover:text-text"
               aria-label="Próximo mês"
             >

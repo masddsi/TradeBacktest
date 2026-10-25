@@ -27,6 +27,11 @@ export function migrate(): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS bankrolls (
+      year     INTEGER PRIMARY KEY,
+      bankroll REAL    NOT NULL CHECK (bankroll >= 0)
+    );
   `);
 
   const cols = db.prepare('PRAGMA table_info(trades)').all() as { name: string }[];
@@ -119,6 +124,46 @@ export function saveSettings(patch: Partial<Settings>): Settings {
 }
 
 export type TradeResult = 'WIN' | 'LOSS';
+
+/** Anos aceitos para a banca por ano (faixa razoável para um diário de trading). */
+const MIN_BANKROLL_YEAR = 2000;
+const MAX_BANKROLL_YEAR = 2100;
+
+export type Bankrolls = Record<number, number>;
+
+/** Banca inicial por ano. Ano ausente = sem banca definida. */
+export function getBankrolls(): Bankrolls {
+  const rows = db
+    .prepare('SELECT year, bankroll FROM bankrolls ORDER BY year DESC')
+    .all() as { year: number; bankroll: number }[];
+  return Object.fromEntries(rows.map((r) => [r.year, r.bankroll]));
+}
+
+function assertBankrollYear(year: number): void {
+  if (!Number.isInteger(year) || year < MIN_BANKROLL_YEAR || year > MAX_BANKROLL_YEAR) {
+    throw new Error('Ano inválido.');
+  }
+}
+
+/** Grava (ou substitui) a banca inicial de um ano. */
+export function setBankroll(year: number, bankroll: number): Bankrolls {
+  assertBankrollYear(year);
+  if (!Number.isFinite(bankroll) || bankroll < 0) {
+    throw new Error('Banca inicial inválida.');
+  }
+  db.prepare(
+    `INSERT INTO bankrolls (year, bankroll) VALUES (?, ?)
+     ON CONFLICT(year) DO UPDATE SET bankroll = excluded.bankroll`,
+  ).run(year, bankroll);
+  return getBankrolls();
+}
+
+/** Remove a banca de um ano (ano volta a não ter banca definida). */
+export function deleteBankroll(year: number): Bankrolls {
+  assertBankrollYear(year);
+  db.prepare('DELETE FROM bankrolls WHERE year = ?').run(year);
+  return getBankrolls();
+}
 
 export const SETUPS = ['Gap', 'Bate e Volta', 'Vazio', 'Extremo'] as const;
 export type Setup = (typeof SETUPS)[number];

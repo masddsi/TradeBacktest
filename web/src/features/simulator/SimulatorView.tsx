@@ -12,6 +12,7 @@ import {
 } from '../../lib/simulate';
 import { EquityChart } from '../../components/EquityChart';
 import { KpiCard } from '../../components/KpiCard';
+import { SetupPicker } from '../../components/SetupPicker';
 import { Button, EmptyState, Panel, Pill, ResultBadge } from '../../components/ui';
 
 const LOTE_PRESETS = [1, 2, 5, 10];
@@ -83,6 +84,7 @@ export function SimulatorView() {
 
   const [source, setSource] = useState<Source>('all');
   const [months, setMonths] = useState<string[]>([]);
+  const [setups, setSetups] = useState<string[]>([]);
   const [lote, setLote] = useState(1);
   const [management, setManagement] = useState<Management>('conservador');
   const [banca, setBanca] = useState<number | null>(null);
@@ -105,8 +107,11 @@ export function SimulatorView() {
 
   const scoped = useMemo(() => {
     const all = trades ?? [];
-    return source === 'all' ? all : all.filter((t) => months.includes(monthKey(t.date)));
-  }, [trades, source, months]);
+    const bySource = source === 'all' ? all : all.filter((t) => months.includes(monthKey(t.date)));
+    return setups.length === 0
+      ? bySource
+      : bySource.filter((t) => t.setup !== null && setups.includes(t.setup));
+  }, [trades, source, months, setups]);
 
   const sim = useMemo(
     () => simulateExam(scoped, { lote, bancaInicial, rules, management }),
@@ -240,6 +245,18 @@ export function SimulatorView() {
             )}
           </>
         )}
+
+        <div className="mt-4 border-t border-border pt-3">
+          <span className="mb-2 block text-xs font-medium text-muted">Estratégia</span>
+          <SetupPicker selected={setups} onChange={setSetups} />
+          <p className="mt-1.5 text-[11px] text-muted/70">
+            {setups.length === 0
+              ? 'Sem filtro: todas as estratégias entram na simulação.'
+              : `Filtrando ${setups.length} ${setups.length === 1 ? 'estratégia' : 'estratégias'} · ${scoped.length} ${
+                  scoped.length === 1 ? 'operação' : 'operações'
+                }.`}
+          </p>
+        </div>
       </Panel>
 
       <Panel

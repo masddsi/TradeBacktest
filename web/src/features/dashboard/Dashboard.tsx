@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Activity, Plus, Target, TrendingDown, TrendingUp } from 'lucide-react';
 import { useSettings, useStats, useTrades } from '../../lib/hooks';
-import { RANGE_LABELS, rangeFor, todayISO, type RangeKey } from '../../lib/ranges';
+import { todayISO, yearRange } from '../../lib/ranges';
 import { brl, brlSigned, pct, ratio, shortDate, weekday } from '../../lib/format';
 import type { Trade } from '../../lib/types';
 import { EquityChart } from '../../components/EquityChart';
 import { CalendarHeatmap } from '../../components/CalendarHeatmap';
 import { KpiCard } from '../../components/KpiCard';
-import { Button, EmptyState, Panel, Pill, ResultBadge } from '../../components/ui';
-
-const RANGES: RangeKey[] = ['month', 'ytd', '30d', '90d', 'all'];
+import { SetupPicker } from '../../components/SetupPicker';
+import { YearBankroll } from '../../components/YearBankroll';
+import { Button, EmptyState, Panel, ResultBadge } from '../../components/ui';
 
 export function Dashboard({
   onNewTrade,
@@ -20,23 +20,46 @@ export function Dashboard({
   onEditTrade: (trade: Trade) => void;
   onDayClick: (date: string) => void;
 }) {
-  const [range, setRange] = useState<RangeKey>('all');
-  const params = useMemo(() => rangeFor(range), [range]);
-  const { data: stats } = useStats(params);
+  // Todos os anos vêm do servidor uma vez; o ano selecionado dita o resto da tela.
   const { data: allTrades } = useTrades();
+  const [year, setYear] = useState<number | null>(null);
+  const [setups, setSetups] = useState<string[]>([]);
+
+  // Padrão: ano da operação mais recente (a lista vem em ordem desc); senão, o ano atual.
+  const effectiveYear = year ?? Number((allTrades ?? [])[0]?.date.slice(0, 4) ?? new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const isCurrentYear = effectiveYear === currentYear;
+
+  const params = useMemo(() => {
+    const base = yearRange(effectiveYear);
+    return setups.length ? { ...base, setups } : base;
+  }, [effectiveYear, setups]);
+  const { data: stats } = useStats(params);
   const { data: settings } = useSettings();
 
-  const recent = useMemo(() => (allTrades ?? []).slice(0, 6), [allTrades]);
-  const today = todayISO();
-  const todayPnl = (allTrades ?? []).find((t) => t.date === today)?.pnl ?? 0;
-  const goal = settings?.daily_goal ?? 0;
-  const goalPct = goal > 0 ? Math.min(1, Math.max(0, todayPnl / goal)) : 0;
-  const bankroll = settings?.bankroll ?? 0;
-  const totalPnlAll = useMemo(
-    () => (allTrades ?? []).reduce((a, t) => a + t.pnl, 0),
-    [allTrades],
+  // Operações com o filtro de estratégia (todos os anos) — alimenta o calendário
+  // e seus anos disponíveis.
+  const filteredTrades = useMemo(() => {
+    const setupSet = setups.length ? new Set(setups) : null;
+    return (allTrades ?? []).filter((t) => !setupSet || setupSet.has(t.setup ?? ''));
+  }, [allTrades, setups]);
+
+  // Operações do ano selecionado.
+  const yearTrades = useMemo(
+    () => filteredTrades.filter((t) => t.date.startsWith(`${effectiveYear}-`)),
+    [filteredTrades, effectiveYear],
   );
-  const bankrollNow = bankroll + totalPnlAll;
+
+  const recent = useMemo(() => yearTrades.slice(0, 6), [yearTrades]);
+  const today = todayISO();
+  // No ano atual, mostra o dia de hoje; em anos passados, o último dia operado do ano.
+  const dayTrade = isCurrentYear
+    ? filteredTrades.find((t) => t.date === today)
+    : (yearTrades[0] ?? null);
+  const dayPnl = dayTrade?.pnl ?? 0;
+  const goal = settings?.daily_goal ?? 0;
+  const goalPct = goal > 0 ? Math.min(1, Math.max(0, dayPnl / goal)) : 0;
+  const yearPnl = stats?.totalPnl ?? 0;
 
   const streakTone =
     stats?.currentResult === 'WIN' ? 'gain' : stats?.currentResult === 'LOSS' ? 'loss' : 'neutral';
@@ -44,12 +67,9 @@ export function Dashboard({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-panel p-1">
-          {RANGES.map((key) => (
-            <Pill key={key} active={range === key} onClick={() => setRange(key)}>
-              {RANGE_LABELS[key]}
-            </Pill>
-          ))}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-panel px-2.5 py-1.5">
+          <span className="text-xs text-muted">Estratégia</span>
+          <SetupPicker selected={setups} onChange={setSetups} />
         </div>
         <Button variant="primary" onClick={onNewTrade}>
           <Plus size={16} /> Nova operação
@@ -62,7 +82,7 @@ export function Dashboard({
           value={brlSigned(stats?.totalPnl ?? 0)}
           tone={(stats?.totalPnl ?? 0) >= 0 ? 'gain' : 'loss'}
           sub={`${stats?.wins ?? 0}W · ${stats?.losses ?? 0}L`}
-          hint="Soma dos resultados das operações do período: ganhos menos perdas. Valores positivos indicam lucro; negativos, prejuízo."
+          hint="Soma dos resultados das operações do ano selecionado: ganhos menos perdas. Valores positivos indicam lucro; negativos, prejuízo."
           icon={stats && stats.totalPnl >= 0 ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
         />
         <KpiCard
@@ -70,7 +90,7 @@ export function Dashboard({
           value={pct(stats?.winRate ?? 0)}
           tone="accent"
           sub={`${stats?.total ?? 0} operações`}
-          hint="Percentual de operações vencedoras (WIN) no período. É calculada como WINs ÷ total de operações."
+          hint="Percentual de operações vencedoras (WIN) no ano selecionado. É calculada como WINs ÷ total de operações."
           icon={<Target size={15} />}
         />
         <KpiCard
@@ -92,23 +112,23 @@ export function Dashboard({
           value={`${stats?.currentStreak ?? 0} ${stats?.currentResult ?? ''}`.trim()}
           tone={streakTone}
           sub={`máx ${stats?.maxWinStreak ?? 0}W / ${stats?.maxLossStreak ?? 0}L`}
-          hint="Resultado da sequência atual (WIN ou LOSS) e quantas operações ela dura. O texto abaixo mostra a maior sequência de ganhos e de perdas do período."
+          hint="Resultado da sequência atual (WIN ou LOSS) e quantas operações ela dura. O texto abaixo mostra a maior sequência de ganhos e de perdas do ano selecionado."
         />
         <KpiCard
           label="Drawdown máx"
           value={brl(stats?.maxDrawdown ?? 0)}
           tone="loss"
           sub={`melhor ${brl(stats?.bestDay?.pnl ?? 0)} · pior ${brl(stats?.worstDay?.pnl ?? 0)}`}
-          hint="Maior queda da curva de capital desde um topo até o vale seguinte. O texto abaixo mostra o melhor e o pior dia do período."
+          hint="Maior queda da curva de capital desde um topo até o vale seguinte. O texto abaixo mostra o melhor e o pior dia do ano selecionado."
         />
       </div>
 
-      <Panel title="Curva de capital" subtitle="Evolução do P&L acumulado no período">
+      <Panel title="Curva de capital" subtitle="Evolução do P&L acumulado no ano selecionado">
         <div className="h-[300px]">
           {stats && stats.equityCurve.length > 0 ? (
             <EquityChart data={stats.equityCurve} />
           ) : (
-            <EmptyState title="Sem dados no período" hint="Registre operações para ver a curva." />
+            <EmptyState title="Sem dados no ano selecionado" hint="Registre operações para ver a curva." />
           )}
         </div>
       </Panel>
@@ -235,58 +255,48 @@ export function Dashboard({
       <div className="grid gap-4 xl:grid-cols-3">
         <Panel
           title="Calendário de resultados"
-          subtitle="Verde = gain · Vermelho = loss"
+          subtitle={`Ano ${effectiveYear} · Verde = gain · Vermelho = loss`}
           className="xl:col-span-2"
         >
-          <CalendarHeatmap trades={allTrades ?? []} onDayClick={onDayClick} />
+          <CalendarHeatmap
+            trades={filteredTrades}
+            year={effectiveYear}
+            onYearChange={setYear}
+            onDayClick={onDayClick}
+          />
         </Panel>
 
         <div className="space-y-4">
-          <Panel title="Status de hoje">
+          <Panel title={isCurrentYear ? 'Status de hoje' : `Último dia de ${effectiveYear}`}>
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="font-mono text-xl font-bold tabular-nums [overflow-wrap:anywhere] sm:text-2xl">
                 <span
-                  className={todayPnl > 0 ? 'text-gain' : todayPnl < 0 ? 'text-loss' : 'text-muted'}
+                  className={dayPnl > 0 ? 'text-gain' : dayPnl < 0 ? 'text-loss' : 'text-muted'}
                 >
-                  {todayPnl === 0 ? brl(0) : brlSigned(todayPnl)}
+                  {dayPnl === 0 ? brl(0) : brlSigned(dayPnl)}
                 </span>
               </span>
               <span className="text-right font-mono text-xs text-muted">
+                {dayTrade ? `${shortDate(dayTrade.date)} · ` : ''}
                 meta {brl(goal)} · stop {brl(settings?.daily_max_loss ?? 0)}
               </span>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
               <div
                 className={`h-full rounded-full transition-all ${
-                  todayPnl < 0 ? 'bg-loss' : 'bg-gain'
+                  dayPnl < 0 ? 'bg-loss' : 'bg-gain'
                 }`}
                 style={{ width: `${Math.round(goalPct * 100)}%` }}
               />
             </div>
             <p className="mt-2 text-xs text-muted">
-              {todayPnl >= goal && goal > 0
+              {dayPnl >= goal && goal > 0
                 ? 'Meta diária atingida. Bom trabalho.'
-                : todayPnl < 0 && Math.abs(todayPnl) >= (settings?.daily_max_loss ?? 0)
+                : dayPnl < 0 && Math.abs(dayPnl) >= (settings?.daily_max_loss ?? 0)
                   ? 'Limite de perda atingido — encerre o dia.'
                   : 'Progresso em relação à meta diária.'}
             </p>
-            {bankroll > 0 && (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-3 py-2">
-                <span className="text-xs text-muted">Banca atual</span>
-                <span className="text-right">
-                  <span
-                    className={`font-mono text-sm font-semibold tabular-nums ${
-                      bankrollNow >= bankroll ? 'text-gain' : 'text-loss'
-                    }`}
-                  >
-                    {brl(bankrollNow)}
-                  </span>
-                  <span className="ml-1.5 font-mono text-[11px] text-muted/70">
-                    ini {brl(bankroll)}
-                  </span>
-                </span>
-              </div>
-            )}
+            <YearBankroll year={effectiveYear} yearPnl={yearPnl} />
           </Panel>
 
           <Panel title="Últimas operações" bodyClassName="p-0">

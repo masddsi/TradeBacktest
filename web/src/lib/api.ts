@@ -1,4 +1,4 @@
-import type { Settings, SettingsResponse, Stats, Trade, TradeInput } from './types';
+import type { Bankrolls, Settings, SettingsResponse, Stats, Trade, TradeInput } from './types';
 
 async function errorFrom(res: Response): Promise<Error> {
   let message = `Erro ${res.status}`;
@@ -29,11 +29,11 @@ function filenameFrom(header: string | null): string | null {
   return match?.[1] ?? null;
 }
 
-function qs(params: { from?: string; to?: string }): string {
+function qs(params: RangeParams): string {
   const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value) search.set(key, value);
-  }
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
+  if (params.setups?.length) search.set('setups', params.setups.join(','));
   const s = search.toString();
   return s ? `?${s}` : '';
 }
@@ -41,6 +41,8 @@ function qs(params: { from?: string; to?: string }): string {
 export interface RangeParams {
   from?: string;
   to?: string;
+  /** Estratégias (setups) para filtrar. Vazio = todas. */
+  setups?: string[];
 }
 
 export const api = {
@@ -55,6 +57,11 @@ export const api = {
   getSettings: () => request<Settings>('/settings'),
   updateSettings: (patch: Settings) =>
     request<SettingsResponse>('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+  getBankrolls: () => request<Bankrolls>('/bankrolls'),
+  setBankroll: (year: number, bankroll: number) =>
+    request<Bankrolls>('/bankrolls', { method: 'PUT', body: JSON.stringify({ year, bankroll }) }),
+  deleteBankroll: (year: number) =>
+    request<Bankrolls>(`/bankrolls/${year}`, { method: 'DELETE' }),
   exportDatabase: async () => {
     const res = await fetch('/api/export/database');
     if (!res.ok) throw await errorFrom(res);

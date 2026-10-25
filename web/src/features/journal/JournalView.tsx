@@ -1,13 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Pencil, StickyNote } from 'lucide-react';
+import { CalendarDays, Pencil, StickyNote, X } from 'lucide-react';
 import { useTrades } from '../../lib/hooks';
 import { brlSigned, shortDate, weekday } from '../../lib/format';
 import type { Trade } from '../../lib/types';
 import { Button, EmptyState, Panel, ResultBadge } from '../../components/ui';
 
 export function JournalView({ onEditTrade }: { onEditTrade: (trade: Trade) => void }) {
-  const { data: trades = [] } = useTrades();
+  const [month, setMonth] = useState('');
   const [onlyWithNotes, setOnlyWithNotes] = useState(false);
+
+  const params = useMemo(() => {
+    if (!month) return {};
+    const [y, m] = month.split('-').map(Number);
+    if (!y || !m) return {};
+    const last = new Date(y, m, 0).getDate();
+    return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, '0')}` };
+  }, [month]);
+
+  const { data: trades = [] } = useTrades(params);
 
   const entries = useMemo(() => {
     const sorted = [...trades].sort((a, b) => b.date.localeCompare(a.date));
@@ -23,19 +33,49 @@ export function JournalView({ onEditTrade }: { onEditTrade: (trade: Trade) => vo
             Revise o contexto e a disciplina de cada dia.
           </p>
         </div>
-        <Button
-          variant={onlyWithNotes ? 'primary' : 'outline'}
-          onClick={() => setOnlyWithNotes((v) => !v)}
-        >
-          <StickyNote size={14} /> Só com notas
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5">
+            <CalendarDays size={13} className="text-muted" />
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="bg-transparent font-mono text-xs text-text outline-none"
+            />
+            {month && (
+              <button
+                onClick={() => setMonth('')}
+                aria-label="Limpar filtro de mês"
+                className="text-muted hover:text-text"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <Button
+            variant={onlyWithNotes ? 'primary' : 'outline'}
+            onClick={() => setOnlyWithNotes((v) => !v)}
+          >
+            <StickyNote size={14} /> Só com notas
+          </Button>
+        </div>
       </div>
 
       {entries.length === 0 ? (
         <Panel>
           <EmptyState
-            title={onlyWithNotes ? 'Nenhuma operação com anotações' : 'Nenhuma operação registrada'}
-            hint="Adicione notas ao registrar ou editar uma operação."
+            title={
+              onlyWithNotes
+                ? 'Nenhuma operação com anotações'
+                : month
+                  ? 'Nenhuma operação neste mês'
+                  : 'Nenhuma operação registrada'
+            }
+            hint={
+              month
+                ? 'Escolha outro mês ou limpe o filtro.'
+                : 'Adicione notas ao registrar ou editar uma operação.'
+            }
           />
         </Panel>
       ) : (

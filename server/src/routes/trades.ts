@@ -75,7 +75,7 @@ function validate(body: unknown): { ok: true; data: TradeInput } | { ok: false; 
 
 export async function tradesRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/trades', async (request) => {
-    const { from, to } = request.query as { from?: string; to?: string };
+    const { from, to, setups } = request.query as { from?: string; to?: string; setups?: string };
     const where: string[] = [];
     const params: string[] = [];
     if (from) {
@@ -85,6 +85,11 @@ export async function tradesRoutes(app: FastifyInstance): Promise<void> {
     if (to) {
       where.push('date <= ?');
       params.push(to);
+    }
+    const setupList = setups?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+    if (setupList.length) {
+      where.push(`setup IN (${setupList.map(() => '?').join(', ')})`);
+      params.push(...setupList);
     }
     const sql =
       'SELECT * FROM trades' +
