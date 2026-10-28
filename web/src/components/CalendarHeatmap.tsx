@@ -30,12 +30,15 @@ export function CalendarHeatmap({
   year,
   onYearChange,
   onDayClick,
+  onTradeClick,
 }: {
   trades: Trade[];
   /** Ano controlado pelo componente pai (dashboard). */
   year: number;
   onYearChange: (year: number) => void;
   onDayClick?: (date: string) => void;
+  /** Chamado quando o dia clicado já possui operação. */
+  onTradeClick?: (trade: Trade) => void;
 }) {
   const currentMonth = useMemo(() => startOfMonth(new Date()), []);
 
@@ -186,7 +189,7 @@ export function CalendarHeatmap({
           return (
             <button
               key={key}
-              onClick={() => onDayClick?.(key)}
+              onClick={() => (trade && onTradeClick ? onTradeClick(trade) : onDayClick?.(key))}
               title={trade ? `${trade.date} · ${trade.contracts} contratos · ${brlSigned(trade.pnl)}` : key}
               style={bg ? { backgroundColor: bg } : undefined}
               className={`flex h-14 flex-col justify-between rounded-md border p-1.5 text-left transition-colors ${

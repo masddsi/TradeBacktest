@@ -263,6 +263,7 @@ export function Dashboard({
             year={effectiveYear}
             onYearChange={setYear}
             onDayClick={onDayClick}
+            onTradeClick={onEditTrade}
           />
         </Panel>
 
